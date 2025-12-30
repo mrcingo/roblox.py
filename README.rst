@@ -1,13 +1,6 @@
 roblox.py
 ======
 
-.. image:: https://img.shields.io/pypi/v/roblox.py.svg
-   :target: https://pypi.python.org/pypi/discord.py
-   :alt: PyPI version info
-.. image:: https://img.shields.io/pypi/pyversions/roblox.py.svg
-   :target: https://pypi.python.org/pypi/discord.py
-   :alt: PyPI supported Python versions
-
 A lightweight Python wrapper for the Roblox API focused on user data and gamepass inventory management.
 
 Key Features
@@ -33,10 +26,10 @@ To install the library, you can just run the following command:
 .. code:: sh
 
     # Linux/macOS
-    python3 -m pip install -U roblox.py
+    python3 setup.py install
 
     # Windows
-    py -3 -m pip install -U roblox.py
+    py -3 setup.py install
 
 Quick Example
 --------------
@@ -45,8 +38,8 @@ Quick Example
 
     import roblox
 
-    async with roblox.Roblox(authorization=...) as roblox: # Authorization is completely optional in some cases
-        await roblox.get_user(target=...) # ID or Name
+    async with roblox.Roblox(authorization=...) as client: # Authorization is completely optional in some cases
+        await client.get_user(target=...) # ID or Name
 
 Links
 ------
