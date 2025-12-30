@@ -41,6 +41,8 @@ Quick Example
     async with roblox.Roblox(authorization=...) as client: # Authorization is completely optional in some cases
         await client.get_user(target=...) # ID or Name
 
+You can find more examples in the examples directory.
+
 Links
 ------
 
