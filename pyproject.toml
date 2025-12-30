@@ -1,0 +1,78 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "roblox.py"
+description = "A lightweight Python wrapper for the Roblox API focused on user data and gamepass inventory management"
+readme = { file = "README.rst", content-type = "text/x-rst" }
+license-files = ["LICEN[CS]E*"]
+requires-python = ">=3.8"
+authors = [{ name = "Rapptz" }]
+classifiers = [
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Internet",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Utilities",
+    "Typing :: Typed",
+]
+dynamic = ["version", "dependencies"]
+
+[project.urls]
+"Issue tracker" = "https://github.com/Gwarded/roblox.py/issues"
+
+[tool.setuptools.dynamic]
+dependencies = { file = "requirements.txt" }
+
+[tool.setuptools]
+packages = [
+    "roblox",
+    "roblox.types",
+]
+include-package-data = true
+
+[tool.black]
+line-length = 125
+skip-string-normalization = true
+
+[tool.ruff]
+line-length = 125
+
+[tool.ruff.format]
+line-ending = "lf"
+quote-style = "single"
+
+[tool.isort]
+profile = "black"
+combine_as_imports = true
+combine_star = true
+line_length = 125
+
+[tool.pyright]
+include = [
+    "roblox",
+    "roblox/types",
+]
+exclude = [
+    "**/__pycache__",
+    "build",
+    "dist",
+    "docs",
+]
+reportUnnecessaryTypeIgnoreComment = "warning"
+reportUnusedImport = "error"
+pythonVersion = "3.14"
+typeCheckingMode = "basic"
+
+[tool.pytest.ini_options]
+asyncio_mode = "strict"

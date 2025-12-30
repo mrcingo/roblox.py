@@ -1,0 +1,11 @@
+*.json
+*.egg-info
+venv
+.venv
+.env
+*.buildinfo
+build/
+dist/
+uv.lock*
+pylock*.toml
+__pycache__
