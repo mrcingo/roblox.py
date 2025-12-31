@@ -48,7 +48,7 @@ from .user import PartialUser, User
 if TYPE_CHECKING:
     from . import abc
 
-__all__ = ('Client',)
+__all__ = ('Connection',)
 
 
 class Route:
@@ -75,30 +75,24 @@ class Route:
 class Http:
 
     def __init__(self, *, authorization: Optional[str] = None):
-        self.__session: Optional[aiohttp.ClientSession] = aiohttp.ClientSession()
-        self.__authorization: Optional[str] = authorization
+        self.session: Optional[aiohttp.ClientSession] = aiohttp.ClientSession()
 
-        if self.__authorization:
-            self.__session.headers.update({'Cookie': f'.ROBLOSECURITY={self.__authorization}'})
-        self.__session.headers.update({'User-Agent': self.__str__()})
+        if authorization:
+            self.session.headers.update({'Cookie': f'.ROBLOSECURITY={authorization}'})
+        self.session.headers.update({'User-Agent': self.__str__()})
 
     def __str__(self) -> str:
         return f'RobloxPy (https://github.com/Gwarded/roblox.py {__version__}) Python/{sys.version_info[0]} aiohttp/{aiohttp.__version__}'
 
-    async def __aenter__(self) -> Self:
-        return self
-
-    async def __aexit__(self, exc_type: Type[BaseException], exc_value: BaseException, traceback: TracebackType) -> None:
-        await self.close()
-
     async def close(self):
-        assert self.__session is not None
-        await self.__session.close()
-        self.__session = None
+        assert self.session is not None
+
+        await self.session.close()
+        self.session = None
 
     async def request(self, route: Route, *, data: Optional[Union[dict, list]] = None) -> tuple[Any, int]:
-        assert self.__session is not None
-        async with self.__session.request(
+        assert self.session is not None
+        async with self.session.request(
             method=route.method,
             json=data,
             url=route.url,
@@ -113,7 +107,7 @@ class Http:
 
             if response.status == 403:
                 if response.headers.get('x-csrf-token') is not None:
-                    self.__session.headers.add('X-CSRF-TOKEN', response.headers['x-csrf-token'])
+                    self.session.headers.add('X-CSRF-TOKEN', response.headers['x-csrf-token'])
                     return await self.request(route=route, data=data)
 
                 payload: Dict[Literal['errors'], List[Dict[Literal['code', 'message'], Union[str, int]]]] = (
@@ -135,10 +129,19 @@ class Http:
             return await response.json(), response.status
 
 
-class Client(Http):
+class Connection:
+
+    def __init__(self, *, authorization: Optional[str] = None):
+        self.http = Http(authorization=authorization)
+
+    async def __aenter__(self) -> Self:
+        return self
+
+    async def __aexit__(self, exc_type: Type[BaseException], exc_value: BaseException, traceback: TracebackType) -> None:
+        await self.http.close()
 
     async def get_user_by_name(self, name: str) -> abc.PartialUser:
-        payload, _ = await self.request(
+        payload, _ = await self.http.request(
             Route(
                 'POST',
                 'users',
@@ -157,7 +160,7 @@ class Client(Http):
         return PartialUser(payload.get('data')[0])
 
     async def get_user_by_id(self, id: int) -> abc.User:
-        payload, _ = await self.request(
+        payload, _ = await self.http.request(
             Route(
                 'GET',
                 'users',
@@ -168,7 +171,7 @@ class Client(Http):
         return User(self, payload)
 
     async def get_gamepass_by_id(self, id: int) -> abc.Gamepass:
-        payload, _ = await self.request(
+        payload, _ = await self.http.request(
             Route(
                 'GET',
                 'apis',
@@ -179,7 +182,7 @@ class Client(Http):
         return Gamepass(self, payload)
 
     async def get_user_gamepass_ownership(self, user_id: int, gamepass_id: int) -> bool:
-        payload, _ = await self.request(
+        payload, _ = await self.http.request(
             Route(
                 'GET',
                 'inventory',
@@ -193,7 +196,7 @@ class Client(Http):
         return True
 
     async def get_user_gamepasses(self, id: int) -> List[abc.PartialGamepass]:
-        payload, _ = await self.request(Route('GET', 'apis', ('game-passes', 'v1', 'users', str(id), 'game-passes')))
+        payload, _ = await self.http.request(Route('GET', 'apis', ('game-passes', 'v1', 'users', str(id), 'game-passes')))
 
         gamepasses: List[abc.PartialGamepass] = list()
         for gamepass in payload.get('gamePasses'):
@@ -202,14 +205,14 @@ class Client(Http):
         return gamepasses
 
     async def get_authenticated_user(self) -> abc.PartialUser:
-        payload, _ = await self.request(Route('GET', 'users', ('v1', 'users', 'authenticated')))
+        payload, _ = await self.http.request(Route('GET', 'users', ('v1', 'users', 'authenticated')))
 
         self._authenticated_user = PartialUser(payload)
 
         return PartialUser(payload)
 
     async def purchase_gamepass(self, product_id: int, expected_price: int, expected_seller_id: int) -> None:
-        payload, _ = await self.request(
+        payload, _ = await self.http.request(
             Route(
                 'POST',
                 'apis',
@@ -234,7 +237,7 @@ class Client(Http):
             raise PendingTransactionAlreadyExists()
 
     async def revoke_gamepass_ownership(self, id: int, expected_price: int, expected_seller_id: int) -> None:
-        payload, _ = await self.request(
+        payload, _ = await self.http.request(
             Route('POST', 'apis', ('game-passes', 'v1', 'game-passes', str(id) + ':revokeownership')),
             data={
                 'expectedCurrency': 1,

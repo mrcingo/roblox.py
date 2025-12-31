@@ -27,7 +27,7 @@ from __future__ import annotations
 from types import TracebackType
 from typing import TYPE_CHECKING, Literal, Self, Type, Union, overload
 
-from .http import Client
+from .http import Connection
 
 if TYPE_CHECKING:
     from .abc import Gamepass, PartialUser, User
@@ -39,13 +39,13 @@ __all__ = ('Roblox',)
 class Roblox:
 
     def __init__(self, *, authorization=None):
-        self._client = Client(authorization=authorization)
+        self.connection = Connection(authorization=authorization)
 
     async def __aenter__(self) -> Self:
         return self
 
     async def __aexit__(self, exc_type: Type[BaseException], exc_value: BaseException, traceback: TracebackType) -> None:
-        await self._client.close()
+        await self.connection.__aexit__(exc_type, exc_value, traceback)
 
     @overload
     async def get_user(self, target: int) -> User:
@@ -61,12 +61,12 @@ class Roblox:
 
     async def get_user(self, target: Union[str, int], *, partial: bool = True) -> Union[User, PartialUser]:
         if isinstance(target, int):
-            return await self._client.get_user_by_id(int(target))
+            return await self.connection.get_user_by_id(int(target))
 
-        partial_user = await self._client.get_user_by_name(target)
+        partial_user = await self.connection.get_user_by_name(target)
 
         if not partial:
-            return await self._client.get_user_by_id(partial_user.id)
+            return await self.connection.get_user_by_id(partial_user.id)
 
         return partial_user
 
@@ -79,12 +79,12 @@ class Roblox:
         pass
 
     async def get_self(self, *, partial: bool = True) -> Union[User, PartialUser]:
-        authenticated_user = await self._client.get_authenticated_user()
+        authenticated_user = await self.connection.get_authenticated_user()
 
         if not partial:
-            return await self._client.get_user_by_id(authenticated_user.id)
+            return await self.connection.get_user_by_id(authenticated_user.id)
 
         return authenticated_user
 
     async def get_gamepass(self, target: int) -> Gamepass:
-        return await self._client.get_gamepass_by_id(target)
+        return await self.connection.get_gamepass_by_id(target)

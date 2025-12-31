@@ -52,7 +52,7 @@ class User(Object, Protocol):
     description: str
     display_name: str
     external_app_display_name: Optional[str]
-    has_verified_badge: bool
+    has_verified_badge: Optional[bool]
     id: int
     is_banned: bool
     name: str

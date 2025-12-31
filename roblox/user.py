@@ -28,7 +28,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from .http import Client
+    from .http import Connection
     from .types.user import Creator as CreatorPayload
     from .types.user import CreatorType
     from .types.user import PartialUser as PartialUserPayload
@@ -64,8 +64,9 @@ class PartialUser:
 
 class User:
     __slots__ = (
-        '_client',
-        '_created',
+        'connection',
+        'data',
+        'raw_created',
         'description',
         'display_name',
         'external_app_display_name',
@@ -76,21 +77,24 @@ class User:
     )
 
     if TYPE_CHECKING:
-        _client: Client
+        connection: Connection
 
-        _created: str
+        data: UserPayload
+
+        raw_created_time: str
         description: str
         display_name: str
         external_app_display_name: Optional[str]
-        has_verified_badge: bool
+        has_verified_badge: Optional[bool]
         id: int
         is_banned: bool
         name: str
 
-    def __init__(self, client: Client, data: UserPayload):
-        self._client = client
+    def __init__(self, connection: Connection, data: UserPayload):
+        self.connection = connection
 
-        self._created = data.get('created')
+        self.data = data
+
         self.description = data.get('description')
         self.display_name = data.get('displayName')
         self.external_app_display_name = data.get('externalAppDisplayName')
@@ -104,7 +108,7 @@ class User:
 
     @property
     def created(self) -> datetime:
-        return datetime.fromisoformat(self._created.replace('Z', '+00:00'))
+        return datetime.fromisoformat(self.data.get('created').replace('Z', '+00:00'))
 
 
 class Creator:

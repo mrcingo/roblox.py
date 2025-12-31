@@ -31,8 +31,7 @@ from . import abc
 from .user import Creator
 
 if TYPE_CHECKING:
-    from .client import Client
-    from .types import Creator as CreatorPayload
+    from .http import Connection
     from .types import Gamepass as GamepassPayload
     from .types import PartialGamepass as PartialGamepassPayload
 
@@ -43,28 +42,31 @@ __all__ = ('Gamepass',)
 
 class PartialGamepass:
     __slots__ = (
-        '_client',
+        'connection',
+        'data',
         'id',
         'asset_id',
         'name',
         'description',
-        '_creator',
         'is_for_sale',
         'price_in_robux',
     )
 
     if TYPE_CHECKING:
-        _client: Client
+        connection: Connection
+
+        data: PartialGamepassPayload
 
         asset_id: int
         name: str
         description: str
         price_in_robux: Optional[int]
         is_for_sale: bool
-        _creator: CreatorPayload
 
-    def __init__(self, client: Client, data: PartialGamepassPayload):
-        self._client = client
+    def __init__(self, connection: Connection, data: PartialGamepassPayload):
+        self.connection = connection
+
+        self.data = data
 
         self.id = data.get('gamePassId')
         self.asset_id = data.get('iconAssetId')
@@ -72,20 +74,20 @@ class PartialGamepass:
         self.description = data.get('description')
         self.price_in_robux = data.get('price')
         self.is_for_sale = data.get('isForSale')
-        self._creator = data.get('creator')
 
     def __str__(self) -> str:
         return f'{self.name}'
 
     @property
     def creator(self) -> abc.Creator:
-        return Creator(self._creator)
+        return Creator(self.data.get('creator'))
 
 
-class BaseGamepass:
+class Gamepass:
     __slots__ = (
+        'connection',
+        'data',
         'id',
-        '_client',
         'target_id',
         'product_type',
         'asset_id',
@@ -93,10 +95,7 @@ class BaseGamepass:
         'name',
         'description',
         'asset_type_id',
-        '_creator',
         'icon_image_asset_id',
-        '_created',
-        '_updated',
         'price_in_robux',
         'price_in_tickets',
         'sales',
@@ -110,7 +109,9 @@ class BaseGamepass:
     )
 
     if TYPE_CHECKING:
-        _client: Client
+        connection: Connection
+
+        data: GamepassPayload
 
         target_id: int
         product_type: str
@@ -119,10 +120,7 @@ class BaseGamepass:
         name: str
         description: str
         asset_type_id: int
-        _creator: CreatorPayload
         icon_image_asset_id: int
-        _created: str
-        _updated: str
         price_in_robux: Optional[int]
         price_in_tickets: Optional[int]
         sales: int
@@ -134,8 +132,10 @@ class BaseGamepass:
         remaining: Optional[int]
         minimum_membership_level: int
 
-    def __init__(self, client: Client, data: GamepassPayload):
-        self._client = client
+    def __init__(self, connection: Connection, data: GamepassPayload):
+        self.connection = connection
+
+        self.data = data
 
         self.id = data.get('TargetId')
         self.product_type = data.get('ProductType')
@@ -144,10 +144,7 @@ class BaseGamepass:
         self.name = data.get('Name')
         self.description = data.get('Description')
         self.asset_type_id = data.get('AssetTypeId')
-        self._creator = data.get('Creator')
         self.icon_image_asset_id = data.get('IconImageAssetId')
-        self._created = data.get('Created')
-        self._updated = data.get('Updated')
         self.price_in_robux = data.get('PriceInRobux')
         self.price_in_tickets = data.get('PriceInTickets')
         self.sales = data.get('Sales')
@@ -164,14 +161,11 @@ class BaseGamepass:
 
     @property
     def created(self) -> datetime:
-        return datetime.fromisoformat(self._created.replace('Z', '+00:00'))
+        return datetime.fromisoformat(self.data.get('Created').replace('Z', '+00:00'))
 
     @property
     def updated(self) -> datetime:
-        return datetime.fromisoformat(self._updated.replace('Z', '+00:00'))
-
-
-class Gamepass(BaseGamepass):
+        return datetime.fromisoformat(self.data.get('Updated').replace('Z', '+00:00'))
 
     @overload
     async def creator(self, *, partial: Literal[True] = ...) -> abc.Creator:
@@ -182,26 +176,28 @@ class Gamepass(BaseGamepass):
         pass
 
     async def creator(self, *, partial: bool = True) -> Union[abc.User, abc.Creator]:
-        assert self._creator['CreatorType'] == 'User'
+        creator_payload = self.data.get('Creator')
+
+        assert creator_payload['CreatorType'] == 'User'
 
         if partial is True:
-            return Creator(self._creator)
+            return Creator(creator_payload)
         else:
-            return await self._client.get_user_by_id(self._creator['Id'])
+            return await self.connection.get_user_by_id(creator_payload['Id'])
 
     async def purchase(self) -> None:
         assert self.price_in_robux is not None
 
         expected_seller = await self.creator()
 
-        await self._client.purchase_gamepass(self.product_id, self.price_in_robux, expected_seller.id)
+        await self.connection.purchase_gamepass(self.product_id, self.price_in_robux, expected_seller.id)
 
     async def revoke(self) -> None:
         assert self.price_in_robux is not None
 
         expected_seller = await self.creator()
 
-        await self._client.revoke_gamepass_ownership(self.id, self.price_in_robux, expected_seller.id)
+        await self.connection.revoke_gamepass_ownership(self.id, self.price_in_robux, expected_seller.id)
 
     async def has_user(self, target: Union[abc.User, abc.PartialUser, abc.Creator, int]) -> bool:
         user_id: Optional[int] = None
@@ -214,4 +210,4 @@ class Gamepass(BaseGamepass):
 
         assert user_id is not None
 
-        return await self._client.get_user_gamepass_ownership(user_id, self.id)
+        return await self.connection.get_user_gamepass_ownership(user_id, self.id)
