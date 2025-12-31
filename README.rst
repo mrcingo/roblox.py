@@ -1,7 +1,7 @@
 roblox.py
 ======
 
-A lightweight Python wrapper for the Roblox API focused on user data and gamepass inventory management.
+A lightweight Python wrapper for the Roblox API focused on user data and economy.
 
 Key Features
 -------------
