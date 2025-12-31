@@ -8,7 +8,7 @@ description = "A lightweight Python wrapper for the Roblox API focused on user d
 readme = { file = "README.rst", content-type = "text/x-rst" }
 license-files = ["LICEN[CS]E*"]
 requires-python = ">=3.8"
-authors = [{ name = "Rapptz" }]
+authors = [{ name = "Gwarded" }]
 classifiers = [
     "Intended Audience :: Developers",
     "Natural Language :: English",
